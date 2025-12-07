@@ -82,13 +82,42 @@ def run_full_test():
         try:
             # A. Generate Script
             print(f"   🤖 Asking Gemini for a {template_type} script...")
-            script = gemini.get_script(
-                full_text, 
-                class_level=11, # Assuming Class 11 based on PDF content
-                template=template_type
-            )
+            #script = gemini.get_script(
+            #    full_text, 
+            #    class_level=11, # Assuming Class 11 based on PDF content
+            #    template=template_type
+            #)
             #print(f"   📝 Script Received:{script.fulltext}")
-            
+            mock_script = {
+                # 1. Hook
+                "hook_spoken": "Can you answer this class 11 chemistry question?",
+                
+                # 2. Question
+                "question_spoken": "Which quantum number determines the shape of an orbital?",
+                "question_visual": "Orbital Shape Quantum No.?", 
+                
+                # 3. Options
+                "opt_a_spoken": "Principal quantum number",
+                "opt_a_visual": "Principal (n)",
+                
+                "opt_b_spoken": "Azimuthal quantum number",
+                "opt_b_visual": "Azimuthal (l)",
+                
+                "opt_c_spoken": "Magnetic quantum number",
+                "opt_c_visual": "Magnetic (m)",
+                
+                "opt_d_spoken": "Spin quantum number",
+                "opt_d_visual": "Spin (s)",
+                
+                # 4. Answer Logic
+                "correct_opt": "D",
+                "explanation_spoken": "The Azimuthal quantum number, l, determines the orbital angular momentum and the shape of the orbital.",
+                "explanation_visual": "Determines Shape", 
+                
+                # 5. CTA
+                "cta_spoken": "Subscribe for more exam prep!"
+            }
+            script=mock_script
             # Validation Preview
             if template_type == 'quiz':
                 preview = f"Q: {script.get('question_text', '')[:40]}..."
@@ -101,12 +130,21 @@ def run_full_test():
 
             # B. Configure Engine
             # We force the config to match the current loop
+            #import random
+
+            #theme_options = ['energetic_yellow', 'calm_blue', 'vibrant_purple', 'fresh_green', 'classic_red']
+            #theme = random.choice(theme_options)
+            #theme = self.engine.get_theme(default_theme)
             test_config = {
                 'template': template_type,
                 'voice': VoiceManager.get_random_voice_name(),
-                'theme': 'energetic_yellow' if template_type == 'quiz' else 
-                         ('vibrant_purple' if template_type == 'fact' else 'fresh_green'),
+                #'theme': 'energetic_yellow' if template_type == 'quiz' else 
+                #         ('vibrant_purple' if template_type == 'fact' else 'fresh_green'),
+                #'theme': theme,
                 'cta_style': 'bookend',
+                'width': 270,
+                'height': 480,
+                'fps': 10, 
                 'class_level': 11
             }
             
@@ -114,7 +152,7 @@ def run_full_test():
             output_path = os.path.join(OUTPUT_DIR, output_filename)
             
             print(f"   🗣️  Voice: {test_config['voice']}")
-            print(f"   🎨 Theme: {test_config['theme']}")
+            #print(f"   🎨 Theme: {test_config['theme']}")
 
             # C. Generate Video
             result = engine.generate_short(

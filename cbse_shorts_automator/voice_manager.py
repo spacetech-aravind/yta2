@@ -282,6 +282,8 @@ class VoiceManager:
                 # Try to find similar Edge voice (same gender)
                 edge_voice_key = get_random_edge_voice()  # Fallback to random
                 voice_config = EDGE_VOICES[edge_voice_key]
+                print(f" Voice used: {edge_voice_key}")
+                
             else:
                 edge_voice_key = voice_key
             
@@ -296,7 +298,7 @@ class VoiceManager:
                 return AudioFileClip(output_path)
         
         # Step 5: Complete failure
-        raise Exception(f"Failed to synthesize audio with voice '{voice_key}'")
+        raise Exception(f"Failed to synthesize audio with voice '{voice_key},{provider}'")
 
     def get_usage_summary(self):
         """

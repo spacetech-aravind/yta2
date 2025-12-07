@@ -55,4 +55,10 @@ for seg in ans_segments:
                 
             abs_start = t_content + seg['start']
             sub_clip = sub_clip.set_position(('center', CONTENT_Y)).set_start(abs_start).set_duration(seg['duration'])
-            clips.append(sub_clip)            
+            clips.append(sub_clip)  
+
+for theme in energetic_yellow calm_blue vibrant_purple fresh_green classic_red; do
+    python test_quiz_visuals.py --mode production-preview --segment full \
+        --video temp/test_source.mp4 --theme $theme --log-level minimal
+    read -n 1 -r
+done          

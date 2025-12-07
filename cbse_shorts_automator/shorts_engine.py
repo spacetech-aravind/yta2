@@ -20,6 +20,7 @@ from moviepy.editor import (
 from moviepy.audio.fx.all import audio_normalize
 from voice_manager import VoiceManager
 from effects_manager import EffectsManager 
+from visual_effects_quiz import FPS
 
 # Theme configurations
 THEMES = {
@@ -111,7 +112,7 @@ class ShortsEngine:
         print(f"🎬 Rendering final video to: {output_path}")
         video_clip.write_videofile(
             output_path,
-            fps=24,
+            fps=FPS,
             codec='libx264',
             audio_codec='aac',
             threads=4,

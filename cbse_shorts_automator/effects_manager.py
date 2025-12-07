@@ -15,8 +15,8 @@ class EffectsManager:
         self.keyword_map = self._load_keyword_map()
         
         # Verify assets
-        if not os.path.exists(self.assets_dir):
-            print(f"❌ [FX ERROR] Sticker directory not found: {self.assets_dir}")
+        #if not os.path.exists(self.assets_dir):
+            #print(f"❌ [FX ERROR] Sticker directory not found: {self.assets_dir}")
 
     def _load_keyword_map(self):
         return {
