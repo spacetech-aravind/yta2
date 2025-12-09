@@ -415,3 +415,8 @@ Q7: each phase 6.667 seconds is acceptable
 Q5: transition can be instant cut for now
 
 Q4: we can check with linear. if everything works well, we can change it to 'eased'
+
+
+====
+Regarding outro:
+the logo is a transparent png and is designed such that it looks good in white background. other colored backgorounds makes it look akward. can we place a clean white or off-white background for the outro screen and bring in visual richness through logo animation and the colour variations & other effects of the text elemnts alone? 
