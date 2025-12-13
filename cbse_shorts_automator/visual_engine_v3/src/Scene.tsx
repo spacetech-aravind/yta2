@@ -151,6 +151,7 @@ const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
                     fps={fps}
                     height={height}
                     positionY={timerYPos}
+                    seed={scenario.meta.seed+2}
                 />
             )}
 
@@ -197,7 +198,9 @@ const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
                         height={cardHeight}
                         landingTime={opt.start_time} // SYNC TRIGGER
                         finalY={finalYPos} // FINAL RESTING Y
-                        positionZ={positionZ} // BASE Z
+                        positionZ={positionZ} // BASE Z// --- NEW DETERMINISTIC PROPS ---
+                        seed={scenario.meta.seed+1}
+                        index={i}
                     />
                 );
             })}

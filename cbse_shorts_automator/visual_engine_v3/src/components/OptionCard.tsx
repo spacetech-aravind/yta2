@@ -13,9 +13,12 @@ interface OptionCardProps {
     theme: { primary: string; secondary: string; [key: string]: any };
     width: number;
     height: number;
-    finalY: number; 
-    landingTime: number; 
-    positionZ: number; 
+    finalY: number;
+    landingTime: number;
+    positionZ: number;
+    // New Props for Deterministic Animation
+    seed: number;
+    index: number;
 }
 
 export const OptionCard: React.FC<OptionCardProps> = ({
@@ -27,8 +30,10 @@ export const OptionCard: React.FC<OptionCardProps> = ({
     finalY,
     landingTime,
     positionZ,
+    seed,
+    index,
 }) => {
-    // --- 1. HOOKS: MUST BE CALLED UNCONDITIONALLY AT THE TOP LEVEL ---
+    // --- 1. HOOKS: MUST BE CALLED UNCONDITIONALLY ---
     const frame = useCurrentFrame();
     const { fps } = useVideoConfig();
 
@@ -38,7 +43,7 @@ export const OptionCard: React.FC<OptionCardProps> = ({
 
     // Spring Config (Controlled Motion)
     const springConfig = useMemo(() => ({
-        mass: 0.5, 
+        mass: 0.5,
         stiffness: 280,
         damping: 20,
     }), []);
@@ -48,30 +53,71 @@ export const OptionCard: React.FC<OptionCardProps> = ({
         frame: frame - triggerFrame,
         fps,
         config: springConfig,
-        from: 0, 
+        from: 0,
         to: 1
     });
 
-    // --- 2. LOGIC BASED ON HOOK OUTPUT ---
+    // --- 2. ANIMATION MATRIX LOGIC ---
+    
+    // Distances
+    const VERTICAL_OFFSET = height * 5; 
+    const HORIZONTAL_OFFSET = width * 1.5; // Ensure it clears the screen width
 
-    // Interpolation for Scale (0.8 -> 1.0)
+    const { startX, startY } = useMemo(() => {
+        const variantIndex = seed % 4;
+        
+        // Default: Target position (0, finalY)
+        let sX = 0;
+        let sY = finalY;
+
+        switch (variantIndex) {
+            case 0: // The Waterfall (Original: Up from bottom)
+                sY = finalY - VERTICAL_OFFSET;
+                break;
+            case 1: // The Sweep (Left to Right)
+                sX = -HORIZONTAL_OFFSET;
+                break;
+            case 2: // The Inverse Sweep (Right to Left)
+                sX = HORIZONTAL_OFFSET;
+                break;
+            case 3: // The Zipper
+                // A (0), C (2) -> From Left
+                // B (1), D (3) -> From Right
+                const isLeft = index % 2 === 0;
+                sX = isLeft ? -HORIZONTAL_OFFSET : HORIZONTAL_OFFSET;
+                break;
+            default:
+                sY = finalY - VERTICAL_OFFSET;
+        }
+
+        return { startX: sX, startY: sY };
+    }, [seed, index, finalY, height, width]);
+
+    // --- 3. INTERPOLATIONS ---
+
+    // Scale Animation (Standard for all variants)
     const scale = interpolate(
-        entranceDriver, // Input is the spring's non-linear progress (0 to 1)
+        entranceDriver,
         [0, 1],
         [0.8, 1.0]
     );
     
-    // Interpolation for Y-Position (Start 1.5x Height Below -> finalY)
-    const slideDisplacement = height * 5; 
+    // Y-Position Interpolation
     const yPos = interpolate(
         entranceDriver,
         [0, 1],
-        [finalY - slideDisplacement, finalY ]
+        [startY, finalY]
     );
 
-    // STATE & MATERIAL ENGINE
+    // X-Position Interpolation (New)
+    const xPos = interpolate(
+        entranceDriver,
+        [0, 1],
+        [startX, 0] // 0 is always center
+    );
+
+    // --- 4. STATE & MATERIAL ENGINE ---
     const styles = useMemo(() => {
-        const rimSize = 0.04;
         switch (state) {
             case 'correct':
                 return {
@@ -97,20 +143,18 @@ export const OptionCard: React.FC<OptionCardProps> = ({
 
     // PULSE ANIMATION (Correct State Only)
     const pulse = useMemo(() => {
-        // Pulse only starts after the card has landed
         if (state !== 'correct' || frame < landingFrame) return 1;
         return Math.sin(frame / 8) * 0.01 + 1.01;
     }, [state, frame, landingFrame]);
 
     const finalScale = scale * pulse;
 
-    // --- 3. FINAL VISIBILITY CHECK (Now safe to return) ---
-    // FIX: Only render if the current frame is at or past the calculated trigger frame.
-    if (frame < (triggerFrame-ANIMATION_DURATION_SEC*fps)) {
+    // --- 5. RENDER CHECK ---
+    if (frame < (triggerFrame - ANIMATION_DURATION_SEC * fps)) {
         return null;
     }
 
-    // --- 4. LAYOUT ---
+    // --- 6. LAYOUT CONSTANTS ---
     const padding = width * 0.08;
     const textMaxWidth = width - (padding * 2);
     const fontSize = text.length > 40 ? height * 0.35 : height * 0.45;
@@ -120,7 +164,7 @@ export const OptionCard: React.FC<OptionCardProps> = ({
 
     return (
         <group 
-            position={[0, yPos, positionZ + styles.zOffset]} 
+            position={[xPos, yPos, positionZ + styles.zOffset]} 
             scale={[finalScale, finalScale, 1]}
         >
             {/* LAYER 1: RIM (Glow/Bloom) */}
