@@ -48,7 +48,7 @@ export const ParticleSystem: React.FC<ParticleSystemProps> = ({ variant, color }
             {variant === 0 && (
                 <>
                     <Stars radius={25} depth={10} count={50} factor={4} saturation={0} fade speed={1} />
-                    <Cloud opacity={0.3} speed={0.4} bounds={[6, 2, 1.5]}  segments={4} color={color} />
+                    <Cloud opacity={0.3} speed={0.1} bounds={[6, 2, 1.5]}  segments={1} color={color} />
                 </>
             )}
         </group>

@@ -9,11 +9,14 @@ interface NanoTextProps {
     color?: string;
     anchorX?: 'center' | 'left' | 'right';
     anchorY?: 'middle' | 'top' | 'bottom';
-    fontUrl?: string;
+    fontUrl?: string;// NEW PROPS FOR WRAPPING
+    maxWidth?: number;
+    textAlign?: 'left' | 'right' | 'center' | 'justify';
 }
 
 export const NanoText: React.FC<NanoTextProps> = ({ 
-    text, position, fontSize = 0.5, color = 'white', anchorX = 'center', anchorY='middle', fontUrl 
+    text, position, fontSize = 0.5, color = 'white', anchorX = 'center', anchorY='middle', fontUrl,maxWidth,    // <--- Receive prop
+    textAlign = 'center' // <--- Default to center 
 }) => {
     const adjustedSize = text.length > 20 ? fontSize * 0.75 : fontSize;
     
@@ -34,7 +37,9 @@ export const NanoText: React.FC<NanoTextProps> = ({
             anchorX={anchorX}
             anchorY={anchorY}
             outlineWidth={0.02}
-            outlineColor="#000000"
+            outlineColor="#000000"// NEW PROPS PASSED DOWN
+            maxWidth={maxWidth}
+            textAlign={textAlign}
         >
             {text}
         </Text>

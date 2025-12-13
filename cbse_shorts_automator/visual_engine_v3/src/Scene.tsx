@@ -12,6 +12,10 @@ import { ParticleSystem } from './components/ParticleSystem';
 import { NanoText } from './components/Typography';
 import { Watermark } from './components/Watermark';
 import { AnimatedHook } from './components/AnimatedHook';
+import { TypewriterQuestion, estimateQuestionHeight } from './components/TypewriterQuestion';
+import { OptionCard } from './components/OptionCard';
+
+
 
 interface SceneProps {
     scenario: VisualScenario;
@@ -38,20 +42,41 @@ const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
     const stageY = nvuToWorld((ZONES.STAGE_TOP + ZONES.STAGE_BOTTOM) / 2);
     
     // 2. Question Anchor: Slightly above the bottom of the Bridge zone
-    const questionY = nvuToWorld(ZONES.BRIDGE_BOTTOM + 0.03); 
+    //const questionY = nvuToWorld(ZONES.BRIDGE_BOTTOM + 0.03); 
     
     // 3. Options Start: Top of Interaction Zone
-    const optionsStartY = nvuToWorld(ZONES.INTERACTION_TOP - 0.05);
+    //const optionsStartY = nvuToWorld(ZONES.INTERACTION_TOP - 0.05);
 
     // --- STATE MACHINE ---
     const showHook = currentTime < timeline.quiz.question.start_time;
     const showQuestion = currentTime >= timeline.quiz.question.start_time;
-    const showOptions = currentTime >= timeline.quiz.options[0].start_time;
+    const showOptions = currentTime >= timeline.quiz.options[0].start_time-0.4;
     const showAnswer = currentTime >= timeline.answer.start_time;
     const showCTA = currentTime >= timeline.cta.start_time;
 
     // --- CAMERA ANIMATION ---
     const camZ = interpolate(frame, [0, 50], [6, 5], { extrapolateRight: 'clamp' });
+
+    const viewportWidth = height * (9/16); // Assuming Vertical 9:16 Video
+    const questionText = timeline.quiz.question.text;
+    
+    // 1. NEW SYMMETRICAL SAFE ZONE (10% - 90%)
+    // Left: 0.1, Right: 0.9
+    // Center: 0.5 (Perfectly centered, no offset needed)
+    const SAFE_OFFSET_X = 0; 
+    
+    // Width: 0.9 - 0.1 = 0.8 (80% of screen width)
+    const SAFE_MAX_WIDTH = viewportWidth * 0.80;
+    // 2. DYNAMIC HEIGHT CALCULATION (Auto-Stack)
+    const questionHeight = estimateQuestionHeight(questionText, SAFE_MAX_WIDTH, viewportWidth);
+    
+    // 3. ANCHOR POINTS
+    // Question Center Y
+    const questionY = nvuToWorld(ZONES.BRIDGE_BOTTOM + 0.03); 
+    
+    // Options Start Y: Question Y - Half Question Height - Padding
+    const GAP = height * 0.03; // 3% vertical gap
+    const optionsStartY = questionY - (questionHeight / 2) - GAP;
 
     return (
         <>
@@ -70,45 +95,53 @@ const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
                 </Suspense>
             </group>
 
-            {/* 3. THE BRIDGE (Question Text) */}
+            {/* 3. THE BRIDGE (Question Card) */}
             {showQuestion && (
-                <NanoText 
-                    text={timeline.quiz.question.text}
-                    position={[0, questionY, 0]} 
-                    fontSize={height * 0.035} // 3.5% of Screen Height
-                    color="#ffffff"
-                    fontUrl={scenario.assets.font_url}
+                <TypewriterQuestion
+                    text={questionText}
+                    theme={theme}
+                    viewportWidth={viewportWidth}
+                    maxWidth={SAFE_MAX_WIDTH} // Pass strict width
+                    startTime={timeline.quiz.question.start_time}
+                    finishTime={timeline.quiz.options[0].start_time}
+                    position={[SAFE_OFFSET_X, questionY, 0]} // Apply Offset
                 />
             )}
 
-            {/* 4. INTERACTION ZONE (Cards) */}
+            {/* 4. OPTION CARDS (Centered, Synced, Sliding) */}
             {showOptions && timeline.quiz.options.map((opt, i) => {
-                const entryTime = opt.start_time * fps;
-                const opacity = interpolate(frame, [entryTime, entryTime + 10], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+                // State Logic
+                let cardState: 'neutral' | 'correct' | 'dimmed' | 'wrong' = 'neutral';
+                if (showAnswer) {
+                    cardState = opt.id === timeline.answer.correct_option_id 
+                        ? 'correct' 
+                        : 'wrong';
+                }
+
+                // Layout Constants
+                const cardHeight = height * 0.09; 
+                const cardGap = height * 0.02;
                 
-                // Dynamic Stacking: Each card is ~10% of height down
-                const yPos = optionsStartY - (i * (height * 0.11)); 
-                
-                const isCorrect = opt.id === timeline.answer.correct_option_id;
-                const color = (showAnswer && isCorrect) ? theme.primary : "#ffffff";
+                // Final resting Y position for this card
+                const finalYPos = optionsStartY - (cardHeight/2) - (i * (cardHeight + cardGap));
+
+                // x=0 for center, z=0 for base depth
+                const positionZ = 0; 
                 
                 return (
-                    <group key={opt.id} position={[0, yPos, 0]}>
-                        <mesh scale={[opacity, opacity, 1]}>
-                            {/* Card Width relative to viewport width approx 80% (3 units in world space usually fits) */}
-                            <boxGeometry args={[3, height * 0.08, 0.1]} />
-                            <meshStandardMaterial color={showAnswer && !isCorrect ? "#333333" : "#222222"} transparent opacity={0.9} />
-                        </mesh>
-                        <NanoText 
-                            text={opt.text} 
-                            position={[0, 0, 0.06]} 
-                            fontSize={height * 0.025} 
-                            color={color} 
-                        />
-                    </group>
-                )
+                    <OptionCard
+                        key={opt.id}
+                        text={opt.text}
+                        state={cardState}
+                        theme={theme}
+                        width={SAFE_MAX_WIDTH} 
+                        height={cardHeight}
+                        landingTime={opt.start_time} // SYNC TRIGGER
+                        finalY={finalYPos} // FINAL RESTING Y
+                        positionZ={positionZ} // BASE Z
+                    />
+                );
             })}
-
             {/* 5. HOOK (Overlay) - DYNAMIC ANIMATION */}
             {showHook && (
                 <AnimatedHook 
