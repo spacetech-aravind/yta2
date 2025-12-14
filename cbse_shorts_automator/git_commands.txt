@@ -2,7 +2,7 @@
 git add .
 
 # 2. Commit the staged changes with a message
-git commit -m "option card slide ecit animations and explanation card display implemented"
+git commit -m "implemented CTA scene with shredded exit for explanation card"
 
 # 3. Push the new commit to the remote GitHub repository
 git push

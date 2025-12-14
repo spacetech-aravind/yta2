@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react'; // Import useEffect
 import { useCurrentFrame, useVideoConfig, spring, interpolate } from 'remotion';
 import { RoundedBox } from '@react-three/drei';
 import { NanoText } from './Typography';
@@ -10,7 +10,26 @@ interface ExplanationCardProps {
     safeZoneY: number; // The absolute floor (NVU 0.15 converted to World)
     startTime: number;
     ExpCardcolor: string;
+    ExplanationFontSize: number;
+    // NEW PROP: Callback function
+    //onHeightCalculated?: (height: number) => void;
 }
+// --- NEW HELPER FUNCTION (Exported) ---
+export const estimateExplanationLayout = (text: string, width: number, fontSize: number) => {
+    const padding = width * 0.035;
+    const textWidth = width - (padding * 2);
+    //const fontSize = width * 0.07; 
+    const lineHeight = fontSize * 0.9;
+    
+    // Estimate Height
+    const avgCharWidth = fontSize * 1.1;
+    const charsPerLine = textWidth / avgCharWidth;
+    const lines = Math.ceil(text.length / charsPerLine);
+    const textHeight = lines * lineHeight;
+    const boxHeight = textHeight + (padding * 2);
+
+    return { boxHeight, fontSize, textWidth, textHeight, avgCharWidth, lineHeight };
+};
 
 export const ExplanationCard: React.FC<ExplanationCardProps> = ({
     text,
@@ -18,31 +37,39 @@ export const ExplanationCard: React.FC<ExplanationCardProps> = ({
     anchorY,
     safeZoneY,
     startTime,
-    ExpCardcolor
+    ExpCardcolor,
+    ExplanationFontSize//,
+    //onHeightCalculated // Destructure new prop
 }) => {
     const frame = useCurrentFrame();
     const { fps } = useVideoConfig();
 
     // --- 1. DYNAMIC LAYOUT & SAFETY PROTOCOL ---
     const layout = useMemo(() => {
-        const padding = width * 0.045;
-        const textWidth = width - (padding * 2);
-        const fontSize = width * 0.07; // Smaller than Question text
-        const lineHeight = fontSize * 0.9;
+        //const padding = width * 0.040;
+        const fontSize = ExplanationFontSize; // Smaller than Question text
+        //const lineHeight = fontSize * 1;
         
         // Estimate Height
-        const avgCharWidth = fontSize * 0.6;
-        const charsPerLine = textWidth / avgCharWidth;
-        const lines = Math.ceil(text.length / charsPerLine);
-        const textHeight = lines * lineHeight;
-        const boxHeight = textHeight + (padding * 2);
+        // CALL THE HELPER HERE
+        const estimated = estimateExplanationLayout(text, width, fontSize);
 
+        const textWidth = estimated.textWidth;
+        
+        const avgCharWidth = estimated.avgCharWidth;
+        const charsPerLine = estimated.textWidth / avgCharWidth;
+        const lines = Math.ceil(text.length / charsPerLine);
+        const textHeight = lines * estimated.lineHeight;
+        const boxHeight = estimated.boxHeight;
+
+
+        
         // Position Calculation (Centered below anchor)
         // We want a small gap below the Docked Card
         const GAP = 0.2; 
-        const centerY = anchorY - GAP - (boxHeight / 2);
+        const centerY = anchorY - GAP - (estimated.boxHeight / 2);
         
-        const bottomEdge = centerY - (boxHeight / 2);
+        const bottomEdge = centerY - (estimated.boxHeight / 2);
 
         // CRITICAL SAFETY EXCEPTION
         // If the card dips below the Safe Zone, we must stop the render.
@@ -52,8 +79,16 @@ export const ExplanationCard: React.FC<ExplanationCardProps> = ({
             );
         }
 
-        return { boxHeight, centerY, fontSize, textWidth, textHeight };
+        return { boxHeight, estimated, centerY, fontSize, textWidth, textHeight };
     }, [text, width, anchorY, safeZoneY]);
+
+    // NEW: Send the calculated height back to the parent
+    // We use useEffect to avoid side-effects during render
+    //useEffect(() => {
+    //    if (onHeightCalculated) {
+      //      onHeightCalculated(layout.boxHeight);
+        //}
+    //}, [layout.boxHeight, onHeightCalculated]);
 
     // --- 2. ELASTIC POP ANIMATION (Mass 0.5, Tension 300) ---
     const startFrame = startTime * fps;
@@ -67,12 +102,12 @@ export const ExplanationCard: React.FC<ExplanationCardProps> = ({
         to: 1
     });
 
-    const scale = interpolate(progress, [0, 1], [0, 1]);
+    const scale = interpolate(progress, [0, 1], [0, 1])*1.15;
 
     if (frame < startFrame) return null;
 
     return (
-        <group position={[0, layout.centerY, 0.2]} scale={[scale, scale, 1]}>
+        <group position={[0, layout.centerY, -0.01]} scale={[scale, scale, 1]}>
             {/* STICKY NOTE GEOMETRY */}
             <RoundedBox args={[width, layout.boxHeight, 0.02]} radius={0.03} smoothness={4}>
                 <meshStandardMaterial 

@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useState } from 'react';
 import { useCurrentFrame, useVideoConfig, interpolate, Easing } from 'remotion';
 import { Canvas, useThree } from '@react-three/fiber';
 import { ThreeCanvas } from '@remotion/three';
@@ -15,7 +15,8 @@ import { AnimatedHook } from './components/AnimatedHook';
 import { TypewriterQuestion, estimateQuestionHeight } from './components/TypewriterQuestion';
 import { OptionCard, OptionState, AnimationMode } from './components/OptionCard';
 import { TimerVisual } from './components/TimerVisual';
-import { ExplanationCard } from './components/ExplanationCard';
+import { ExplanationCard, estimateExplanationLayout } from './components/ExplanationCard';
+import { SceneFinale } from './components/SceneFinale';
 
 
 
@@ -61,7 +62,24 @@ const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
     //const showExplanation = currentTime >= t_reveal && currentTime < t_cta_start; // <-- CORRECTED
     const showCTA = currentTime >= t_cta_start; // <-- NEW
     
-
+// NEW BOOLEAN: All main quiz elements must vanish (implode) exactly at t_cta_start + 0.2s
+    const isQuizElementsVisible = currentTime < t_cta_start + 0.2; // Quiz elements visible until Expl.Card Shreds
+    const isImploding = currentTime >= t_cta_start && currentTime < t_cta_start + 0.2; // <--- RETAINED
+    
+    // --- RETAINED: Implosion Scale (for Question Box/Correct Option) ---
+    // Start: t_cta_start + 0.0s, End: t_cta_start + 0.2s, Duration: 0.2s
+    const IMPLOSION_START_FRAME = t_cta_start * fps;
+    const IMPLOSION_END_FRAME = (t_cta_start + 0.2) * fps;
+    const implosionScale = interpolate(
+        frame,
+        [IMPLOSION_START_FRAME, IMPLOSION_END_FRAME],
+        [1, 0], // Scale from 1 to 0
+        { 
+            extrapolateLeft: 'clamp', 
+            extrapolateRight: 'clamp', 
+            easing: Easing.out(Easing.exp) // Exponentials.easeIn curve
+        }
+    ); // <--- RETAINED
 
 
 
@@ -133,10 +151,12 @@ const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
     // Boolean States
     const isPostAnswer = currentTime >= t_clearance;
     // STRICT CUTOFF: Explanation Card vanishes exactly when CTA starts
-    const showExplanation = currentTime >= t_reveal && currentTime < timeline.cta.start_time + .01;
+    const showExplanation = currentTime >= t_reveal && currentTime < timeline.cta.start_time + .05;
     // --- SAFETY BOUNDARY ---
     // Safe Zone = 0.15 NVU. 
     const SAFE_ZONE_Y = nvuToWorld(0.15);
+
+    
 
     // Timer Visual Positioning: Slightly above the option cards, below the question
     const timerYPos = optionsStartY + height * 0.03;
@@ -147,10 +167,17 @@ const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
     const CARD_COLOR = theme.secondary || '#fff9c4';
 
     const explanationY = questionBottomWorld - 0.6 - GAP - (height * 0.09);
+    // --- NEW: CTA LAYOUT CALCULATIONS ---
+    const explCardWidth = SAFE_MAX_WIDTH * .9;
+    const ExplanationFontSize=0.06*viewportWidth;
+    const explLayout = estimateExplanationLayout(explanationText, explCardWidth, ExplanationFontSize);
+    
+    const EXPLANATION_CARD_HEIGHT = explLayout.boxHeight; // Approximation from ExplanationCard logic (REQUIRED)
+    const explanationCardCenterY = questionBottomWorld- 0.6 - GAP - EXPLANATION_CARD_HEIGHT*0.5; // <-- ADDED: Re-introduce the variable
 
     // --- NEW: CTA LAYOUT CALCULATIONS ---
-    const THUMBNAIL_HEIGHT = viewportWidth * (9/16) * 0.7; // ~70% of the video slate height (Adjust as needed)
     const THUMBNAIL_WIDTH = viewportWidth * 0.9; // 90% of viewport width
+    const THUMBNAIL_HEIGHT = THUMBNAIL_WIDTH * (9/16) ; // ~70% of the video slate height (Adjust as needed)
     const CTA_PILL_HEIGHT = height * 0.08; // Fixed CTA pill height for the 50% font size rule
     const CTA_GAP = height * 0.02; // Small visual gap between Thumbnail and Pill
 
@@ -168,6 +195,10 @@ const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
     const thumbnailBottomY = thumbnailFinalY - (THUMBNAIL_HEIGHT / 2);
     // CTA Pill Center Y = Thumbnail Bottom Y - Gap - Half Pill Height
     const ctaPillFinalY = thumbnailBottomY - CTA_GAP - (CTA_PILL_HEIGHT / 2);
+
+    const [explCardHeight, setExplCardHeight] = useState(0.6); // Default fallback
+
+    
 
     return (
         <>
@@ -212,7 +243,7 @@ const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
 
             {/* 3. THE BRIDGE (Question Card) */}
             
-            {showQuestion && (
+            {showQuestion && isQuizElementsVisible && (
                 <TypewriterQuestion
                     text={questionText}
                     theme={theme}
@@ -221,11 +252,13 @@ const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
                     startTime={timeline.quiz.question.start_time}
                     finishTime={timeline.quiz.options[0].start_time}
                     position={[SAFE_OFFSET_X, questionY, 0]} // Apply Offset
+                    //scale={isImploding ? implosionScale : 1}
                 />
             )}
 
             {/* 4. OPTION CARDS (Centered, Synced, Sliding) */}
-            {showOptions && timeline.quiz.options.map((opt, i) => {
+            {showOptions && isQuizElementsVisible && timeline.quiz.options.map((opt, i) => {
+            //{showOptions && timeline.quiz.options.map((opt, i) => {
                 
                 const isCorrect = opt.id === timeline.answer.correct_option_id;
 
@@ -275,6 +308,7 @@ const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
                         positionZ={positionZ} // BASE Z// --- NEW DETERMINISTIC PROPS ---
                         seed={scenario.meta.seed+1}
                         index={i}
+                        //scale={isImploding ? implosionScale : 1} // APPLY IMPLOSION SCALE
                     />
                 );
             })}
@@ -285,17 +319,37 @@ const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
             {showExplanation && (
                 <ExplanationCard
                     text={explanationText}
-                    width={SAFE_MAX_WIDTH * 0.9} // 90% of Layout Width
+                    width={explCardWidth} // 90% of Layout Width
                     // Anchor is the BOTTOM of the Docked Card
                     // DockedCardY (Center) - HalfHeight = Docked Bottom
                     anchorY={questionBottomWorld - GAP - (height * 0.09)} 
                     safeZoneY={SAFE_ZONE_Y}
                     startTime={t_reveal}
+                    ExplanationFontSize={ExplanationFontSize}
                     ExpCardcolor={CARD_COLOR} // <--- Pass Explicit Color to Cardt
-                />
+                // NEW: Capture the height
+                   // onHeightCalculated={(h) => setExplCardHeight(h)}
+        />
             )}
 
-           
+           {/* 7. SCENE 6: THE GRAND FINALE (Encapsulated in a single component) */}
+            {currentTime >= t_cta_start && (
+                <SceneFinale
+                    scenario={scenario}
+                    fps={fps}
+                    viewportWidth={viewportWidth}
+                    height={height}
+                    thumbnailFinalY={thumbnailFinalY}
+                    THUMBNAIL_WIDTH={THUMBNAIL_WIDTH}
+                    THUMBNAIL_HEIGHT={THUMBNAIL_HEIGHT}
+                    ctaPillFinalY={ctaPillFinalY}
+                    CTA_PILL_HEIGHT={CTA_PILL_HEIGHT}
+                    explanationCardCenterY={explanationCardCenterY}
+                    explanationCardWidth={explCardWidth}
+                    explanationCardHeight={EXPLANATION_CARD_HEIGHT}
+                    CARD_COLOR={CARD_COLOR}
+                />
+            )}
 
 
             {/* 5. HOOK (Overlay) - DYNAMIC ANIMATION */}
