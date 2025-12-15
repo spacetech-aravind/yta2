@@ -12,6 +12,7 @@
     "@react-three/drei": "^9.88.0",
     "@react-three/fiber": "^8.15.0",
     "@remotion/cli": "^4.0.0",
+    "@remotion/media": "4.0.390",
     "@remotion/three": "^4.0.0",
     "@types/react": "^18.0.0",
     "@types/three": "^0.158.0",

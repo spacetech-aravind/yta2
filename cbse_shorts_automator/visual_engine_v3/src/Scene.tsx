@@ -3,6 +3,7 @@ import { useCurrentFrame, useVideoConfig, interpolate, Easing, spring } from 're
 import { Canvas, useThree } from '@react-three/fiber';
 import { ThreeCanvas } from '@remotion/three';
 import { AbsoluteFill,staticFile } from 'remotion';
+import { Audio } from '@remotion/media';
 import { PerspectiveCamera, Environment, OrbitControls } from '@react-three/drei';
 import { VisualScenario } from './types/schema';
 import { getTheme, getVariant } from './utils/theme';
@@ -78,7 +79,7 @@ const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
     //const camZ = interpolate(frame, [0, 50], [6, 5], { extrapolateRight: 'clamp' });
 
     // --- CAMERA ANIMATION ---
-    const initialCamZ = interpolate(frame, [0, 50], [6, 5], { extrapolateRight: 'clamp' });
+    const initialCamZ = interpolate(frame, [0, 50], [9, 8], { extrapolateRight: 'clamp' });
     
     // 1. Camera Z-Pull: Pull back by 0.2 units during the timing phase
     const Z_PULL_START_FRAME = timeline.timer.start_time * fps;
@@ -408,10 +409,17 @@ export const Scene: React.FC<SceneProps> = ({ scenario }) => {
     console.log("ParticleSystem Variant:", variant);
 
     console.log(theme.bg[0],theme.bg[1])
+    const audioSource = staticFile(scenario.assets.audio_url);
 
     return (
         
     <div style={{ width: '100%', height: '100%', background: `radial-gradient(circle, ${theme.bg[0]}, ${theme.bg[1]})` }}>
+            
+            <Audio 
+        src={audioSource} 
+        volume={0.7}
+      />
+            
             <ThreeCanvas shadows dpr={[1, 2]} 
             width={width} 
             height={height}            

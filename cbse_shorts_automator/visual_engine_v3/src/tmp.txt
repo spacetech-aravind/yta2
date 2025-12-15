@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { useCurrentFrame, useVideoConfig, interpolate, spring, staticFile } from 'remotion';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { NanoText } from './Typography'; 
@@ -12,64 +12,47 @@ interface OutroStageProps {
     t_outro_start: number;
 }
 
-//const DESIGN_WIDTH = 1920; 
+// Define the design width for which the original coordinates were intended (e.g., 1080p width)
+//const DESIGN_WIDTH = 1080; 
 
 export const OutroStage: React.FC<OutroStageProps> = ({ scenario, fps, t_outro_start }) => {
     const frame = useCurrentFrame();
+    // 1. Get the actual video dimensions
     const { width } = useVideoConfig(); 
     const { timeline, assets } = scenario;
-    const { viewport } = useThree();
 
-    const planeScaleFactor=0.25
-    const LogoScaleFactor=0.4
-
-    // Calculate the scale factor based on viewport/design
-    const globalScaleFactor = width / scenario.meta.resolution.w *planeScaleFactor;
-    // Define the final target scale, including the original factor
-    const finalScaleX = globalScaleFactor * 1; 
-    const finalScaleY = globalScaleFactor * 1;
-    const finalScaleZ = globalScaleFactor * 0.1;
-    
-    // --- NEW: SCALE-IN ANIMATION LOGIC ---
-    const scaleInDuration = 2; // 0.5 seconds
-    const scaleInStartFrame = t_outro_start * fps;
-
-    const scaleSpring = spring({
-        frame: frame - scaleInStartFrame, // Start spring animation at t_outro_start
-        fps,
-        // Calculate the number of frames for 0.5 seconds
-        durationInFrames: scaleInDuration * fps, 
-        // Use a configuration that gives a nice 'slam' or 'bounce' effect
-        config: { mass: 1, stiffness: 100, damping: 100 },
-        from: 0,
-        to: 1
-    });
-
-    // Interpolate the spring value (0 to 1) to the actual scale value (0.01 to finalScale)
-    const scaleInValue = interpolate(
-        scaleSpring, 
-        [0, 1], 
-        [0.001, 1] // Start from 0.01 (tiny) and go to 1 (full calculated size)
-    );
-    // ------------------------------------
+    // 2. Calculate the global scale factor
+    // This factor will be applied to the root <group> to make the scene responsive.
+    const globalScaleFactor = width / scenario.meta.resolution.w *1.8;
 
     // --- PRELOAD TEXTURE ---
+    // ... (rest of your component logic remains the same)
     const textureUrl = staticFile(assets.channel_logo_url || assets.thumbnail_url);
     const logoTexture = useTexture(textureUrl);
     
+    // Logic: Is the outro active?
     const showOutro = frame >= t_outro_start * fps;
     const logoRef = useRef<THREE.Group>(null!);
 
     // --- ANIMATION 1: CONTINUOUS LOGO ROTATION (TIMELINE BOUND) ---
+    // ... (useFrame logic remains the same)
     useFrame(() => {
         if (logoRef.current && showOutro) {
+            // Calculate exactly when rotation should start (0.5s after outro starts)
             const rotationStartFrame = (t_outro_start + 0.5) * fps;
+            
+            // Calculate how many frames have passed since start
+            // Math.max ensures we don't get negative rotation before the start time
             const timeDelta = Math.max(0, frame - rotationStartFrame);
+
+            // Apply rotation based on timeline frame. 
+            // 0.05 is the speed factor. Increase/Decrease to change spin speed.
             logoRef.current.rotation.y = timeDelta * 0.05; 
         }
     });
 
-    // --- ANIMATION 2: TEXT SLAM PHYSICS (t_outro_start + delay) ---
+    // --- ANIMATION 2: TEXT SLAM PHYSICS ---
+    // ... (slamAnimation function remains the same)
     const slamAnimation = (delay: number) => {
         const startFrame = (t_outro_start + delay) * fps;
         const spr = spring({
@@ -87,8 +70,8 @@ export const OutroStage: React.FC<OutroStageProps> = ({ scenario, fps, t_outro_s
         };
     };
 
-    const usp1 = slamAnimation(1); // Starts 1.0s after outro starts
-    const usp2 = slamAnimation(2); // Starts 2.0s after outro starts
+    const usp1 = slamAnimation(1); 
+    const usp2 = slamAnimation(2);
 
     if (frame < (t_outro_start - 1) * fps) return null;
 
@@ -96,13 +79,13 @@ export const OutroStage: React.FC<OutroStageProps> = ({ scenario, fps, t_outro_s
     const line2Text = timeline.outro?.line_2 || "FOR MORE";
 
     return (
+        // 3. Apply the global scale factor to the root group
         <group 
             position={[0, 0, 1.5]} 
-            // Apply both the global scale factor AND the dynamic scale-in value
             scale={[
-                finalScaleX * scaleInValue, 
-                finalScaleY * scaleInValue, 
-                finalScaleZ * scaleInValue
+                globalScaleFactor * 0.17, // Original X scale * global factor
+                globalScaleFactor * 0.17, // Original Y scale * global factor
+                globalScaleFactor * 0.1  // Original Z scale * global factor
             ]}
         >
             
@@ -112,7 +95,7 @@ export const OutroStage: React.FC<OutroStageProps> = ({ scenario, fps, t_outro_s
 
             {/* 1. ROTATING CERAMIC BADGE LOGO */}
             {frame >= (t_outro_start + 0.5) * fps && (
-                <group ref={logoRef} position={[0, 1/(LogoScaleFactor/2), 1]} scale={[1/LogoScaleFactor,1/LogoScaleFactor,.1]}>
+                <group ref={logoRef} position={[0, 3.5, 1]} scale={[1.5,1.5,1]}>
                     <mesh>
                         {/* Volumetric Badge */}
                         <boxGeometry args={[2.5, 2.5, 0.08]} />
@@ -143,7 +126,7 @@ export const OutroStage: React.FC<OutroStageProps> = ({ scenario, fps, t_outro_s
             {frame >= (t_outro_start + 0.5) * fps && (
                 <mesh position={[0, 0, -1]}>
                 {/* 10 units wide/tall should ensure it covers the visible area */}
-                <boxGeometry args={[viewport.width/planeScaleFactor, viewport.height/planeScaleFactor, 0.01]} /> 
+                <boxGeometry args={[100, 100, 0.01]} /> 
                 <meshBasicMaterial color={"white"} />
             </mesh>
             )}
@@ -153,7 +136,7 @@ export const OutroStage: React.FC<OutroStageProps> = ({ scenario, fps, t_outro_s
                 <NanoText
                     text={line1Text}
                     position={[0, -1 + usp1.yOffset, 0.5]}
-                    fontSize={1}
+                    fontSize={0.8}
                     color="black"
                     anchorX="center"
                     anchorY="middle"
@@ -165,8 +148,8 @@ export const OutroStage: React.FC<OutroStageProps> = ({ scenario, fps, t_outro_s
             {usp2.visible && (
                 <NanoText
                     text={line2Text}
-                    position={[0, -2.5 + usp2.yOffset, 0.5]}
-                    fontSize={0.7}
+                    position={[0, -2 + usp2.yOffset, 0.5]}
+                    fontSize={0.5}
                     color="#333333" 
                     anchorX="center"
                     anchorY="middle"

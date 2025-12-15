@@ -2,8 +2,8 @@
     "meta": {
         "version": "1.0.0",
         "resolution": {
-            "w": 540,
-            "h": 960
+            "w": 1080,
+            "h": 1920
         },
         "seed": 6503,
         "duration_seconds": 42.18
@@ -68,8 +68,8 @@
         },
         "outro": {
             "start_time": 32.17999999999999,
-            "line_1": "\u26a1 FASTEST REVISIONS",
-            "line_2": "\ud83c\udfaf Subscribe for Quick Mastery"
+            "line_1": "✨ NO BORING LECTURES",
+            "line_2": "🔥 Subscribe for Speed Learning"
         }
     },
     "yt_overlay": {
