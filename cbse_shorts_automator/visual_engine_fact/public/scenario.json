@@ -1,0 +1,38 @@
+{
+  "meta": {
+    "theme_seed": 42938,
+    "config": {
+      "resolution": { "w": 1080, "h": 1920 },
+      "fps": 30
+    }
+  },
+  "assets": {
+    "video_src": "/assets/video_src.mp4",
+    "thumb_src": "/assets/thumbnail.jpg",
+    "logo_src": "/assets/logo.png",
+    "audio_track": "/assets/audio_mix.mp3"
+  },
+  "timings": {
+    "t_title": 15,    
+    "t_details": 15,
+    "t_cta": 30,
+    "t_outro": 35,
+    "total_duration": 40
+  },
+  "content": {
+    "hook_3d": "DID\nYOU\nKNOW?",
+    "fact_title": "Mitochondria",
+    "fact_body_html": "It is the <b>powerhouse</b> of the cell! 🧬",
+    "cta_content": {
+      "social_text": "Subscribe for More!",
+      "link_text": "Full Video Below 👇"
+    },
+    "outro_content": {
+      "usp_line_1": "Exam Ready in 7 Mins",
+      "usp_line_2": "No Fluff, Just Facts"
+    },
+    "usp_badge_text": "7-Min Mastery",
+    "watermark_text": "NCERT QuickPrep",
+    "copyright_text": "© 2025 NCERT QuickPrep"
+  }
+}

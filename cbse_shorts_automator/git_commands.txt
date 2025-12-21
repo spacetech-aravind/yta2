@@ -2,7 +2,7 @@
 git add .
 
 # 2. Commit the staged changes with a message
-git commit -m "one more level of stable point. test_all_templates_webgl.py for creating the final rendering"
+git commit -m "Scene 1 and overall architecture implemented for 'fact' template"
 
 # 3. Push the new commit to the remote GitHub repository
 git push

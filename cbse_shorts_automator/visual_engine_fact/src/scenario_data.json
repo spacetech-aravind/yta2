@@ -1,0 +1,13 @@
+{
+  "timings": { "t_title": 3.5 },
+  "content": { "hook_3d": "DID YOU KNOW?" },
+   "meta": {
+        "version": "1.0.0",
+        "resolution": {
+            "w": 540,
+            "h": 960
+        },
+        "seed": 9350,
+        "duration_seconds": 45.94
+    }
+}
