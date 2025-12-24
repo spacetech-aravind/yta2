@@ -7,5 +7,5 @@ npx remotion render src/index.ts NCERT-Shorts-V3 --frames=0-600 $TEMP_OUT --gl=s
 npx remotion render src/index.ts NCERT-Shorts-V3 --frames=0-600 $TEMP_OUT --enable-multiprocess-on-linux --concurrency=2 (540) = 429
 
 
-
+9945976666 mahesh
 

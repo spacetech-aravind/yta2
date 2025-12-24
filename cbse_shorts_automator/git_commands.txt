@@ -2,7 +2,7 @@
 git add .
 
 # 2. Commit the staged changes with a message
-git commit -m "Scene 1 and overall architecture implemented for 'fact' template"
+git commit -m "One level of stability and control achieved till end of scene2 for 'fact' template"
 
 # 3. Push the new commit to the remote GitHub repository
 git push

@@ -13,16 +13,17 @@
     "audio_track": "/assets/audio_mix.mp3"
   },
   "timings": {
-    "t_title": 15,    
+    "t_title": 6,    
     "t_details": 15,
-    "t_cta": 30,
+    "detailsAudioDuration": 14,
+    "t_cta": 33,
     "t_outro": 35,
     "total_duration": 40
   },
   "content": {
     "hook_3d": "DID\nYOU\nKNOW?",
-    "fact_title": "Mitochondria",
-    "fact_body_html": "It is the <b>powerhouse</b> of the cell! 🧬",
+    "fact_title": "The Blue Whale's Heart",
+    "fact_body_html": "A blue whale's heart is so massive that a human could swim through its arteries! It beats only 10 times per minute. 🌊",
     "cta_content": {
       "social_text": "Subscribe for More!",
       "link_text": "Full Video Below 👇"

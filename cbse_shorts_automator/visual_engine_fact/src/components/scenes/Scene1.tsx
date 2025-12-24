@@ -15,9 +15,11 @@ import { getTheme } from '../../theme/palettes';
 
 interface SceneProps {
     scenario?: FactScenario;
+    lockedDestinationY: number;
+    finalStopZ: number;
 }
 
-export const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
+export const SceneContent: React.FC<SceneProps> = ({ scenario, lockedDestinationY, finalStopZ  }) => {
     const frame = useCurrentFrame();
     const { fps,width:vid_width, height:vid_height } = useVideoConfig();
     
@@ -55,7 +57,7 @@ export const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
 
     // 3. The Boolean Lock
     // The slate is "At Top" from MOVE_END onwards, regardless of when Scene 2 starts
-    const slate_reached_top = frame >= MOVE_END;
+    //const slate_reached_top = frame >= MOVE_END;
 
     // 4. Syncing with Scene 2
     //const T_TITLE_FRAME = Math.round(scenario.timings.t_title * fps);
@@ -88,11 +90,12 @@ export const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
     const boxwidth_plus_gap = slateWidth/BOX_W_FACT;
     const boxwidth=boxwidth_plus_gap * BOX_W_FACT;
     const boxheight=boxwidth * 0.5625;
+    const boxdepth=boxheight*0.05;
     const boxheight_plus_gap = boxheight / BOX_H_FACT;
     const boxdepth_plus_gap = TUNNEL_LENGTH / GRID_Z_COUNT;
     const TARGET_COORDINATEx=(TARGET_SLATE_ITEM.x - (GRID_X_COUNT - 1.05) / 2) * boxwidth_plus_gap;
     const TARGET_COORDINATEy=(TARGET_SLATE_ITEM.y - (GRID_Y_COUNT - 1.05) / 2) * boxheight_plus_gap;
-    const TARGET_COORDINATEz=(boxdepth_plus_gap*TARGET_SLATE_ITEM.z);
+    const TARGET_COORDINATEz=(boxdepth_plus_gap*(TARGET_SLATE_ITEM.z));
     const TARGET_COORDINATE={ x: TARGET_COORDINATEx, y: TARGET_COORDINATEy, z: -TARGET_COORDINATEz }
 
     //console.log("Hello1");
@@ -108,27 +111,34 @@ export const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
     const gap = boxdepth_plus_gap;
 
     // 2. Point Light: Always in front so we see the emoji immediately
-    const lightZ = wallZ + (gap * 0.5);
+    const lightZ = wallZ + (boxdepth * 3.1);
 
     // TIMINGS 
     //const DURATION_SEARCH =3 * fps; // [cite: 153]
     //const DURATION_SMASH = TIMING.S1_SMASH_DURATION_FRAMES;  // Approx impact time
-    const SLATE_START_Z = wallZ - (gap * 0.2); // Spawns behind text
+    const SLATE_START_Z = wallZ - (boxdepth * 3.5); // Spawns behind text
 
 
     // 2. Set Camera Final Z to be safely between the walls
     // We position it at 75% of the way between the previous wall and target wall
-    const cameraFinalZ = TARGET_COORDINATE.z + (boxdepth_plus_gap * 0.75);
+    const cameraFinalZ = TARGET_COORDINATE.z + (boxdepth_plus_gap * (0.75));
     const cameraFinalY = TARGET_COORDINATE.y;
     // 1.2 CAMERA PATHING 
     const curve = useMemo(() => {
-        return new THREE.CatmullRomCurve3([
-            new THREE.Vector3(0, 0, 5),         // Start
-            new THREE.Vector3(TARGET_COORDINATE.x/3, 2*cameraFinalY/3, (cameraFinalZ)*0.33),     // Swoop
-            new THREE.Vector3(-2*TARGET_COORDINATE.x/3, -2*cameraFinalY/3, (cameraFinalZ)*0.66),   // Bank
-            new THREE.Vector3(TARGET_COORDINATE.x, cameraFinalY, cameraFinalZ) // End facing target
-        ]);
-    }, [TARGET_COORDINATE,cameraFinalZ]);
+        const points = [
+                new THREE.Vector3(0, 0, 5),         
+                new THREE.Vector3(TARGET_COORDINATE.x / 3, (2 * cameraFinalY) / 3, cameraFinalZ * 0.33),     
+                new THREE.Vector3((-2 * TARGET_COORDINATE.x) / 3, (-2 * cameraFinalY) / 3, cameraFinalZ * 0.66),   
+                new THREE.Vector3(TARGET_COORDINATE.x, cameraFinalY, cameraFinalZ) 
+            ];
+
+            const c = new THREE.CatmullRomCurve3(points);
+            
+            // CHANGE THIS: 'centripetal' prevents the 'backward' overshoot/looping
+            c.curveType = 'centripetal'; 
+            
+            return c;
+    }, [TARGET_COORDINATE,cameraFinalY,cameraFinalZ]);
 
     // Animate Camera along path
     const cameraProgress = interpolate(frame, [0, DURATION_SEARCH], [0, 1], {
@@ -136,7 +146,8 @@ export const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
         easing: easings.searchPath // [cite: 150] Non-Linear Speed Ramp
     });
     
-    const camPos = curve.getPoint(cameraProgress);
+    const camPos = curve.getPointAt(cameraProgress);
+    const strictZ = interpolate(cameraProgress, [0, 1], [5, cameraFinalZ]);
     const camLookAt = new THREE.Vector3(TARGET_COORDINATE.x, TARGET_COORDINATE.y, TARGET_COORDINATE.z);
 
 
@@ -158,10 +169,20 @@ export const SceneContent: React.FC<SceneProps> = ({ scenario }) => {
     // 1. Get the direction the camera is looking
 const lookDir = useMemo(() => new THREE.Vector3(), []);
 lookDir.subVectors(camLookAt, camPos).normalize();
+const fov = 50;
 
+// The final slateZ should be the Camera's final Z minus this distance
+    // 1.4 THE SMASH LOGIC 
+    // The Slate moves from behind text to Camera Z=0
+    const distToReach90Percent = (slateWidth / 0.9) / (2 * Math.tan((fov * Math.PI) / 180 / 2) * (9/16));
 // 2. Project the text position along that look direction
 // This ensures the text is always dead-center of the frame
-const TEXT_DISTANCE = 2;
+//const TEXT_DISTANCE = 2;
+// 2. The physical gap between the rested slate and the back wall
+const gapBetweenSlateAndWall = Math.abs(finalStopZ - TARGET_COORDINATE.z);
+
+// 3. Set TEXT_DISTANCE to be exactly in the middle of that gap
+const TEXT_DISTANCE = distToReach90Percent + (0.05 * gapBetweenSlateAndWall);
 const HookTextPos = useMemo(() => new THREE.Vector3(), []);
 HookTextPos.copy(camPos).add(lookDir.multiplyScalar(TEXT_DISTANCE));
 
@@ -195,18 +216,13 @@ const responsiveScale = useMemo(() => {
 }, [hookText, TEXT_SCALE_MAX]);
 
 // Apply the entrance animation to our responsive scale
-const animatedScale = textScale * (responsiveScale / TEXT_SCALE_MAX);
-const fov = 50;
+const animatedScale = TEXT_SCALE_MAX * (responsiveScale / TEXT_SCALE_MAX);
 
-// The final slateZ should be the Camera's final Z minus this distance
-    // 1.4 THE SMASH LOGIC 
-    // The Slate moves from behind text to Camera Z=0
-    const distToReach90Percent = (slateWidth / 0.9) / (2 * Math.tan((fov * Math.PI) / 180 / 2) * (9/16));
-    const finalStopZ = cameraFinalZ - distToReach90Percent;
+    //const finalStopZ1 = cameraFinalZ - distToReach90Percent;
     const slateZ = interpolate(frame, [SMASH_START_FRAME, SMASH_END_FRAME], [SLATE_START_Z, finalStopZ], {
         extrapolateLeft: "clamp",
         extrapolateRight: "clamp",
-        easing: Easing.out(Easing.back(1.5)) // [cite: 172] Heavy spring Halt
+        easing: Easing.out(Easing.back(0.6)) // [cite: 172] Heavy spring Halt
     });
 
     // Collision Detection: When Slate passes the Text
@@ -253,14 +269,14 @@ const fov = 50;
     //const destinationY = topEdge3D - margin3D - (slateHeight / 2);
 
     // Lock the viewport values so they don't shift during the move
-    const lockedDestinationY = useMemo(() => {
+     /* const lockedDestinationY1 = useMemo(() => {
         // 1. Get the camera's resting Y (where it ends after the path)
         //const finalCamPos = curve.getPoint(1);
         const camY = cameraFinalY;
         const camZ = cameraFinalZ;
 
         // 2. Distance from camera to slate at the end
-        const distance = Math.abs(camZ - finalStopZ);
+        const distance = Math.abs(camZ - finalStopZ1);
 
         // 3. Calculate full viewport height at that distance
         // fov is in degrees, so we convert to radians and divide by 2 for the triangle
@@ -275,7 +291,7 @@ const fov = 50;
         
         // The final center position for the slate
         return topEdgeWorldY - marginAmount - (slateHeight / 2);
-    }, [cameraFinalZ, finalStopZ, slateWidth, fov]);
+    }, [cameraFinalZ, finalStopZ1, slateWidth, fov]);  */
     // Notice we DON't include 'frame' here, so it stays constant.
 
     const isAtTop = frame >= MOVE_END;
@@ -284,6 +300,22 @@ const fov = 50;
         extrapolateLeft: "clamp",
         extrapolateRight: "clamp"
     }):TARGET_COORDINATE.y*0+lockedDestinationY;
+    const tiltDown = interpolate(
+        frame,
+        [MOVE_START_FRAME, MOVE_END],
+        [0, -0.15], // Transition from flat to tilted
+        { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+        );
+
+    // Flip Logic using scenario timings
+    const flipStartFrame = (scenario.timings.t_cta - scenario.timings.t_title) * fps;
+    const flipProgress = spring({
+        frame: clickFrame - flipStartFrame,
+        fps,
+        config: { stiffness: 100, damping: 15, mass: 2 },
+    });
+    const rotationY = interpolate(flipProgress, [0, 1], [0, Math.PI]);
+
 
     // 1. Scale the tunnel down (recede into the distance)
     const tunnelScale = interpolate(moveProgress, [0, 1], [1, 0.5], {
@@ -295,26 +327,74 @@ const fov = 50;
         extrapolateRight: 'clamp'
     });
 
+    const isScene2Active = frame > (scenario.timings.t_title * fps);
+    // [Insert this logic before your return statement]
+
+    // --- TEXT VIBRATION LOGIC ---
+    // We use prime number multipliers (13, 17, 19, 23) to create interference patterns.
+    // This creates a "jitter" that never repeats visibly but is perfectly stable for video export.
+    const shakeAmp = 0.020; // Strength of the vibration (in 3D units)
+    
+    const vibrationX = (Math.sin(frame * 0.8) + Math.cos(frame * 1.3)) * shakeAmp;
+    const vibrationY = (Math.cos(frame * 0.9) + Math.sin(frame * 1.4)) * shakeAmp;
+
     return (
         <>
                 {/* LIGHTING */}
-                <ambientLight intensity={1.5} />
+                <ambientLight intensity={isScene2Active ? 0.1 : 0.4} />
                   
-                         <pointLight 
-                    position={[TARGET_COORDINATE.x, TARGET_COORDINATE.y, lightZ]} 
-                    intensity={35} 
-                    color={theme.accent_primary} 
-                    distance={gap*5.5}
-                    decay={3.5}
-                />
+                    {!hasCollided && (
+                        <group>
+                            <pointLight
+                            position={[TARGET_COORDINATE.x, TARGET_COORDINATE.y, lightZ]} 
+                            intensity={1} // Note: DirectionalLight intensity scales differently than PointLight
+                            color={"white"}
+                            // We create a target that is further along the -Z axis than the light position
+                            />
+                        </group>
+                        )}
+                {!isScene2Active && (<pointLight 
+                    position={[HookTextPosX, HookTextPosY+boxheight_plus_gap*.25, HookTextPosZ-TEXT_DISTANCE*0.5]} 
+                    intensity={20} 
+                    color={"white"} 
+                    distance={TEXT_DISTANCE*2}
+                    decay={TEXT_DISTANCE*0.5}
+                />)}
+
+                 {hasCollided && (<pointLight 
+                    position={[TARGET_COORDINATE.x, animatedY-boxheight_plus_gap, slateZ]} 
+                    intensity={1} 
+                    color={"white"} 
+                    distance={boxheight_plus_gap}
+                    decay={boxheight_plus_gap*0.1}
+                />)}
+
+                 {hasCollided && (<pointLight 
+                    position={[TARGET_COORDINATE.x-0.5*boxwidth_plus_gap, animatedY+1.0*boxheight_plus_gap, slateZ+boxdepth_plus_gap*.1]} 
+                    intensity={1} 
+                    color={"white"} 
+                    distance={boxheight_plus_gap*20}
+                    decay={boxheight_plus_gap*0.1}
+                />)}
+
+                 {hasCollided && (<pointLight 
+                    position={[TARGET_COORDINATE.x+0.5*boxwidth, animatedY-0.5*boxheight, slateZ+boxdepth_plus_gap*.2]} 
+                    intensity={isScene2Active ? 0.8 : 2} 
+                    color={"white"} 
+                    distance={boxheight_plus_gap*20}
+                    decay={boxheight_plus_gap*0.01}
+                />)}
                  
 
                 {/* CAMERA */}
                 <PerspectiveCamera 
                     makeDefault 
-                    position={camPos} 
+                    position={[camPos.x, camPos.y, strictZ]} 
                     fov={fov}
-                    onUpdate={(c) => c.lookAt(camLookAt)}
+                    onUpdate={(c) => {
+                        c.up.set(0, 1, 0); // Force "Up" to be positive Y
+                        c.lookAt(camLookAt);
+                    }}
                 />
 
                 {/* ENVIRONMENT */}
@@ -329,8 +409,8 @@ const fov = 50;
 
                 {/* HOOK TEXT - THE OBSTACLE */}
                 {!hasCollided && ( 
-                    <Billboard position={[HookTextPosX, HookTextPosY, HookTextPosZ]}>
-                     <Center bottom   key={hookText}  > {/* Apply your desired position here */}   
+                    <Billboard position={[HookTextPosX+ vibrationX, HookTextPosY+ vibrationY, HookTextPosZ]}>
+                     <Center    key={hookText}  > {/* Apply your desired position here */}   
                          <Text3D
                             font={staticFile("assets/fonts/bold.json")} 
                             size={0.8}
@@ -356,7 +436,7 @@ const fov = 50;
 
                 {/* PARTICLE EXPLOSION (Simulated) [cite: 170] */}
                 {hasCollided && frame <  SMASH_END_FRAME + TIMING.S1_EXPLOSION_DURATION && (
-                     <Explosion origin={{ x: HookTextPosX, y: HookTextPosY, z: HookTextPosZ +gap*0.1 }} theme={theme} startTime={SMASH_END_FRAME} duration={TIMING.S1_EXPLOSION_DURATION} />
+                     <Explosion origin={{ x: HookTextPosX, y: HookTextPosY, z: slateZ }} theme={theme} startTime={SMASH_END_FRAME} duration={TIMING.S1_EXPLOSION_DURATION} />
                 )}
 
                 {/* THE KNOWLEDGE SLATE */}
@@ -374,6 +454,8 @@ const fov = 50;
                     position={[TARGET_COORDINATE.x, animatedY, slateZ]} // Centered X/Y, Moving Z
                     isPlaying={isPlaying}
                     slateWidth={slateWidth}
+                    tiltX={tiltDown}
+                    RotationY={rotationY}
                     clickFrame={clickFrame}
                     scenario={scenario}
                 />
@@ -389,7 +471,7 @@ const fov = 50;
 const Explosion = ({ origin, theme, startTime, duration }: any) => {
     const frame = useCurrentFrame();
     // Normalize progress from 0 to 1 over the duration of the explosion
-    const progress = (frame - startTime) / duration;
+    const progress = Math.max(0,(frame - startTime) / duration);
     
     const particles = useMemo(() => {
         return new Array(50).fill(0).map(() => ({
@@ -425,7 +507,7 @@ const Explosion = ({ origin, theme, startTime, duration }: any) => {
 };
 
 
-export const Scene1: React.FC<SceneProps> = ({ scenario }) => {
+export const Scene1: React.FC<SceneProps> = ({ scenario, lockedDestinationY, finalStopZ }) => {
     const theme = getTheme(scenario.meta.theme_seed+5);
     const { width, height } = useVideoConfig();
     //const variant = getVariant(scenario.meta.seed);
@@ -448,7 +530,7 @@ export const Scene1: React.FC<SceneProps> = ({ scenario }) => {
             
             
                 
-                <SceneContent scenario={scenario} />
+                <SceneContent scenario={scenario} lockedDestinationY={lockedDestinationY} finalStopZ={finalStopZ}/>
             </ThreeCanvas>
             {/* Layer 100: The Ghost UI Overlay */}
             {/*<Watermark scenario={scenario} />*/}

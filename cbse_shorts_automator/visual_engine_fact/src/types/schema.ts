@@ -23,6 +23,7 @@ export interface Assets {
 export interface Timings {
   t_title: number;
   t_details: number;
+  detailsAudioDuration: number;
   t_cta: number;
   t_outro: number;
   total_duration: number;

@@ -39,7 +39,7 @@ export const THEMES: Theme[] = [
     // Theme 2: Quantum Lab [cite: 78]
     {
         id: 'quantum',
-        bg_gradient: ['#021806', '#000000'],
+        bg_gradient: ['#000902', '#000000'],
         accent_primary: '#39FF14',
         accent_secondary: '#FF007F',
         container_bg: 'rgba(2, 18, 5, 0.7)',

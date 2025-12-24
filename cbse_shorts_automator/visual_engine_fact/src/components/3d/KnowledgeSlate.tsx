@@ -13,6 +13,8 @@ interface Props {
     isPlaying: boolean;
     slateWidth: number;
     clickFrame: number;
+    tiltX: number;
+    RotationY:number;
 }
 
 export const KnowledgeSlate: React.FC<Props> = ({ 
@@ -20,12 +22,14 @@ export const KnowledgeSlate: React.FC<Props> = ({
     theme, 
     position, 
     isPlaying, 
-    slateWidth, 
+    slateWidth,
+    tiltX,
+    RotationY, 
     clickFrame 
 }) => {
     const { fps } = useVideoConfig();
     const height = slateWidth * 0.5625;
-    const depth = height / 6;
+    const depth = height / 12;
 
     // --- 1. ASSETS & TEXTURES ---
     const texture = useVideoTexture(staticFile(scenario.assets.video_src), {
@@ -56,15 +60,7 @@ export const KnowledgeSlate: React.FC<Props> = ({
     const rippleScale = interpolate(clickFrame, [0, 15], [1, 2.5], { extrapolateRight: 'clamp' });
     const rippleOpacity = interpolate(clickFrame, [0, 15], [0.5, 0], { extrapolateRight: 'clamp' });
 
-    // Flip Logic using scenario timings
-    const flipStartFrame = (scenario.timings.t_cta - scenario.timings.t_title) * fps;
-    const flipProgress = spring({
-        frame: clickFrame - flipStartFrame,
-        fps,
-        config: { stiffness: 100, damping: 15, mass: 2 },
-    });
-    const rotationY = interpolate(flipProgress, [0, 1], [0, Math.PI]);
-
+    
     // --- 3. UI DATA (Seeded for consistency) ---
     const { progressPercent, currentTimeStr } = useMemo(() => {
         // Use theme_seed to make the "random" progress bar consistent every render
@@ -85,11 +81,11 @@ export const KnowledgeSlate: React.FC<Props> = ({
     const barHeight = height * 0.018;
 
     return (
-        <group position={position} rotation={[0, rotationY, 0]}>
+        <group position={position} rotation={[tiltX, RotationY, 0]}>
             {/* MAIN SLATE BODY */}
             <RoundedBox args={[slateWidth, height, depth]} radius={height / 18}>
                 <meshStandardMaterial 
-                    color={theme.accent_primary} 
+                    color={theme.accent_secondary} 
                     metalness={0.7} 
                     roughness={0.3} 
                 />
@@ -97,7 +93,7 @@ export const KnowledgeSlate: React.FC<Props> = ({
 
             {/* FRONT SCREEN */}
             <mesh position={[0, 0, uiZOffset]}>
-                <planeGeometry args={[slateWidth * 0.96, height * 0.96]} />
+                <planeGeometry args={[slateWidth * 0.95, height * 0.9]} />
                 <meshBasicMaterial map={texture} toneMapped={false} transparent />
             </mesh>
 
