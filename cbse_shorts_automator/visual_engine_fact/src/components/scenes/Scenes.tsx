@@ -182,7 +182,7 @@ export const Scenes: React.FC<{ scenario: FactScenario }> = ({ scenario }) => {
             {/* 3. Add Fog to blend the Tunnel into the background gradient */}
             <fog attach="fog" args={[theme.bg_gradient_outer, 10, 80]} />
 
-            <ParticleField color={theme.accent_secondary} count={150} />
+            <ParticleField color={theme.accent_highlight} count={50} />
                 {/* We pass the pre-calculated anchors to Scene 1 */}
                 <SceneContent 
                     scenario={scenario} 

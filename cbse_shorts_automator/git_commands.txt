@@ -2,7 +2,7 @@
 git add .
 
 # 2. Commit the staged changes with a message
-git commit -m "One level of stabile lighting and coloring achieved till end of outro scene 'fact' template"
+git commit -m "partcile field and background implemented to one level for 'fact' template"
 
 # 3. Push the new commit to the remote GitHub repository
 git push
