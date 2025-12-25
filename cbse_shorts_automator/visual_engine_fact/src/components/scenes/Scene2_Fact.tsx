@@ -147,7 +147,7 @@ export const Scene2_Fact: React.FC<{
                         textAlign="center"
                         anchorX="center"
                         anchorY="top"
-                        color={theme.accent_primary}
+                        color={theme.text_header_3d}
                     >
                         {scenario.content.fact_title}
                         <meshStandardMaterial 

@@ -237,7 +237,7 @@ const animatedScale = TEXT_SCALE_MAX * (responsiveScale / TEXT_SCALE_MAX);
     // How many frames since the click started? (Negative if it hasn't started yet)
     const clickFrame = frame - CLICK_START_FRAME; 
     const isPlaying = frame >= (CLICK_START_FRAME);
-    console.log(theme.bg_gradient[0]);
+    console.log(theme.bg_gradient_inner);
 
     // --- NEW: VERTICAL POSITIONING LOGIC ---
 
@@ -354,7 +354,7 @@ const currentSlateY = interpolate(
 const currentTiltX = interpolate(
     frame,
     [tCtaFrame, tCtaFrame + 24],
-    [-0.15, 0],
+    [-0.0, 0],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
 );
 
@@ -364,12 +364,59 @@ const currentRotationY = interpolate(
     [0, -Math.PI],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
 );
+// 1. LIGHTING ANIMATION
+const slateH = slateWidth * 0.5625; // Aspect Ratio 16:9
+const LIGHT_SCALE_X = slateWidth;
+const LIGHT_SCALE_Y = slateH;
+
+// --- DYNAMIC LIGHTING RIG (Relative to Slate Dimensions) ---
+
+// 1. KEY LIGHT (Camera-Locked)
+// Offsets are percentages of the Slate Width/Height
+const keyLightOffsetX = LIGHT_SCALE_X * 0.6; // 60% of width to the right
+const keyLightOffsetZ = LIGHT_SCALE_X * 0.5; // 50% of width in front
+
+// Interpolate Y relative to Slate Height (Top -> Bottom)
+const keyLightOffsetY = interpolate(
+    frame,
+    [scenario.timings.t_title * fps, (scenario.timings.t_title * fps) + 30],
+    [LIGHT_SCALE_Y * 2.0, -LIGHT_SCALE_Y * 1.2], // Starts 2x High, ends 1.2x Low
+    { extrapolateRight: 'clamp' }
+);
+
+const keyLightPos = new THREE.Vector3(
+    camPos.x + keyLightOffsetX, 
+    camPos.y + keyLightOffsetY, 
+    camPos.z + keyLightOffsetZ 
+);
+
+// 2. RIM LIGHT (Slate-Locked)
+// Fixed relative to the target object dimensions
+const rimLightPos = new THREE.Vector3(
+    TARGET_COORDINATE.x - (LIGHT_SCALE_X * 1.2), // 1.5x Width to the Left
+    TARGET_COORDINATE.y + (LIGHT_SCALE_Y * 0.0), // 1.2x Height Above
+    TARGET_COORDINATE.z + (LIGHT_SCALE_X * 0.5)  // 0.5x Width Behind
+);
+// Interpolate Intensity: Dim slightly when reading starts to focus on the screen
+const keyLightInt = interpolate(
+    frame,
+    [scenario.timings.t_title * fps, (scenario.timings.t_title * fps) + 30],
+    [1.2, 0.8], // Bright for Smash -> Softer for Reading
+    { extrapolateRight: 'clamp' }
+);
 
     return (
         <>
                 {/* LIGHTING */}
-                <ambientLight intensity={isScene2Active ? 0.1 : 0.4} />
-                  
+                {/* 1. FILL LIGHT: The Atmosphere (Base Visibility) */}
+                {/* Sky is theme secondary (Blue/Green), Ground is Black. Creates depth. */}
+{/*                 <hemisphereLight 
+                    args={[theme.accent_secondary, '#000000', 0.6]} 
+                /> */}
+                { <ambientLight intensity={isScene2Active||!hasCollided ? 0.1 : 3} />
+                   }
+
+                {/* For the target block */} 
                     {!hasCollided && (
                         <group>
                             <pointLight
@@ -380,37 +427,48 @@ const currentRotationY = interpolate(
                             />
                         </group>
                         )}
-                {!isScene2Active && (<pointLight 
+                {/* For the Hook Text */} 
+                 {!isScene2Active && 
+                (<pointLight 
                     position={[HookTextPosX, HookTextPosY+boxheight_plus_gap*2.5, HookTextPosZ+TEXT_DISTANCE*0.5]} 
-                    intensity={1.0} 
-                    color={"white"} 
+                    intensity={isScene2Active ? 0.8 : 1.2} 
+                    //target-position={[TARGET_COORDINATE.x, TARGET_COORDINATE.y, TARGET_COORDINATE.z]}
+                    color="#FFFFFF" 
+                    castShadow
                     distance={TEXT_DISTANCE*20}
                     decay={TEXT_DISTANCE*.1}
-                />)}
+                />)
+                 }
 
                  {hasCollided && (<pointLight 
-                    position={[TARGET_COORDINATE.x, animatedY-boxheight_plus_gap, slateZ]} 
+                    position={[TARGET_COORDINATE.x, currentSlateY-boxheight_plus_gap, slateZ]} 
                     intensity={1} 
                     color={"white"} 
                     distance={boxheight_plus_gap}
                     decay={boxheight_plus_gap*0.1}
                 />)}
 
-                 {hasCollided && (<pointLight 
-                    position={[TARGET_COORDINATE.x-0.5*boxwidth_plus_gap, animatedY+1.0*boxheight_plus_gap, slateZ+boxdepth_plus_gap*.1]} 
-                    intensity={1} 
-                    color={"white"} 
-                    distance={boxheight_plus_gap*20}
-                    decay={boxheight_plus_gap*0.1}
+                {/* Rim Light*/} 
+
+                 {hasCollided && (<spotLight 
+                    position={[rimLightPos.x, rimLightPos.y, rimLightPos.z]} 
+                    intensity={2} 
+                    target-position={[TARGET_COORDINATE.x, TARGET_COORDINATE.y, TARGET_COORDINATE.z]}
+                    angle={0.6}
+                    color={theme.accent_primary} 
+                    penumbra={0.5}
+                    //distance={boxheight_plus_gap*20}
+                    //decay={boxheight_plus_gap*0.1}
+                    castShadow
                 />)}
 
-                 {hasCollided && (<pointLight 
-                    position={[TARGET_COORDINATE.x+0.5*boxwidth, animatedY-0.5*boxheight, slateZ+boxdepth_plus_gap*.2]} 
-                    intensity={isScene2Active ? 0.8 : 2} 
+                  {hasCollided && (<pointLight 
+                    position={[TARGET_COORDINATE.x-0.0*boxwidth, currentSlateY+0.5*boxheight, slateZ+boxdepth_plus_gap*.5]} 
+                    intensity={isScene2Active ? 0.8 : 0.02} 
                     color={"white"} 
                     distance={boxheight_plus_gap*20}
-                    decay={boxheight_plus_gap*0.01}
-                />)}
+                    decay={boxheight_plus_gap*0.001}
+                />)} 
                  
 
                 {/* CAMERA */}
@@ -451,10 +509,21 @@ const currentRotationY = interpolate(
                             scale={animatedScale}
                         >
                             {hookText}
-                            <meshStandardMaterial 
-                                color={theme.text_3d_face} 
+                            <meshStandardMaterial
+                                attach="material-0"
+                                color={theme.text_header_3d} // White
+                                roughness={0.1} // Mirror-like polish
+                                metalness={0.8}
+                            />
+
+                            {/* MATERIAL 1: SIDES / BEVEL (Neon Glow) */}
+                            {/* Glows with the theme color, visible even in dark tunnel */}
+                            <meshStandardMaterial
+                                attach="material-1"
+                                color={theme.accent_primary}
                                 emissive={theme.accent_primary}
-                                emissiveIntensity={0.5}
+                                emissiveIntensity={0.8}
+                                roughness={0.4}
                             />
                         </Text3D>
                         </Center>
@@ -525,7 +594,7 @@ const Explosion = ({ origin, theme, startTime, duration }: any) => {
     const frame = useCurrentFrame();
     // Normalize progress from 0 to 1 over the duration of the explosion
     const progress = Math.max(0,(frame - startTime) / duration);
-    
+    const particleColor = Math.random() > 0.5 ? theme.accent_highlight : theme.accent_primary;
     const particles = useMemo(() => {
         return new Array(50).fill(0).map(() => ({
             dir: new THREE.Vector3(
@@ -548,7 +617,7 @@ const Explosion = ({ origin, theme, startTime, duration }: any) => {
                     <mesh key={i} position={[currentPos.x, currentPos.y, currentPos.z]}>
                         <boxGeometry args={[p.scale, p.scale, p.scale]} />
                         <meshBasicMaterial 
-                            color={theme.text_3d_face} 
+                            color={particleColor} 
                             transparent 
                             opacity={Math.max(0, 1 - progress)} // Smooth linear fade
                         />
@@ -575,7 +644,7 @@ export const Scene1: React.FC<SceneProps> = ({ scenario, lockedDestinationY, fin
                 linear
                 width={width}
                 height={height}
-                style={{ backgroundColor: theme.bg_gradient[0] }}
+                style={{ backgroundColor: theme.bg_gradient_inner }}
              >
                 {/*</ThreeCanvas><div style={{ width: '100%', height: '100%', background: `radial-gradient(circle, ${theme.bg[0]}, ${theme.bg[1]})` }}>
                 */}    

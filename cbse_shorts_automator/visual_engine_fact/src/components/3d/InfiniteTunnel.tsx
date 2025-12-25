@@ -6,7 +6,7 @@ import { Theme } from '../../theme/palettes';
 import { SCENE_1_CONFIG } from '../../constants';
 import { Edges } from '@react-three/drei'
 
-const createSVGTexture = () => {
+const createSVGTexture = (brandColor: string) => {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
     canvas.height = 144;
@@ -70,7 +70,7 @@ const createSVGTexture = () => {
     const progressWidth = (canvas.width - (barPadding * 2)) * progressPercent;
 
     // Red Progress Bar
-    ctx.fillStyle = '#FF0000'; // YouTube Red
+    ctx.fillStyle = brandColor; // YouTube Red
     ctx.fillRect(barPadding, barY, progressWidth, barHeight);
 
     // Optional: Scrubber (the little red dot)
@@ -112,9 +112,10 @@ export const InfiniteTunnel: React.FC<{ theme: Theme;
     //const SPACING_X = boxwidth_plus_gap-boxwidth;
     //const SPACING_Y = boxheight_plus_gap-boxheight;
     const SPACING_Z =  TUNNEL_LENGTH/GRID_Z_COUNT;
+    const brandColor = theme.brand_youtube;
 
     // Create a larger pool of unique textures
-    const texturePool = useMemo(() => Array.from({ length: 20 }, createSVGTexture), []);
+    const texturePool = useMemo(() => Array.from({ length: 20 }, () => createSVGTexture(brandColor)), [brandColor]);
 
     const gridItems = useMemo(() => {
         const items = [];
@@ -151,7 +152,7 @@ export const InfiniteTunnel: React.FC<{ theme: Theme;
     return (
         <group >
             {/* Volumetric Fog matching BG */}
-            <fog attach="fog" args={[theme.bg_gradient[0], 5, TUNNEL_LENGTH]} />
+            <fog attach="fog" args={[theme.bg_gradient_outer, 5, TUNNEL_LENGTH]} />
             
             {gridItems.map((item, i) => (
                 <mesh key={i} position={item.position as [number, number, number] }>
@@ -159,28 +160,28 @@ export const InfiniteTunnel: React.FC<{ theme: Theme;
                     
                     {/* Sides of the block use theme accent */}
                     <meshStandardMaterial attach="material-0" color={theme.accent_secondary} transparent={true}
-                    opacity={opacity} emissive="#000000"               // CRITICAL: Set to Black. Do not make background blocks glow.
-                    emissiveIntensity={0}            // Keep at 0. Let the PointLight/SpotLight reveal them.
+                    opacity={opacity*0.4} emissive="#000000"               // CRITICAL: Set to Black. Do not make background blocks glow.
+                    emissiveIntensity={0.15}            // Keep at 0. Let the PointLight/SpotLight reveal them.
                     roughness={0.2}                  // Low roughness = High polish (Premium look)
-                    metalness={0.7}                  // High metalness = Catches realistic reflections
+                    metalness={0.2}                  // High metalness = Catches realistic reflections
                     />
                     <meshStandardMaterial attach="material-1" color={theme.accent_secondary} transparent={true}
-                    opacity={opacity} emissive="#000000"               // CRITICAL: Set to Black. Do not make background blocks glow.
-                    emissiveIntensity={0}            // Keep at 0. Let the PointLight/SpotLight reveal them.
+                    opacity={opacity*0.4} emissive="#000000"               // CRITICAL: Set to Black. Do not make background blocks glow.
+                    emissiveIntensity={0.15}            // Keep at 0. Let the PointLight/SpotLight reveal them.
                     roughness={0.2}                  // Low roughness = High polish (Premium look)
-                    metalness={0.7}                  // High metalness = Catches realistic reflections
+                    metalness={0.2}                  // High metalness = Catches realistic reflections
                     />
                     <meshStandardMaterial attach="material-2" color={theme.accent_secondary} transparent={true}
-                    opacity={opacity} emissive="#000000"               // CRITICAL: Set to Black. Do not make background blocks glow.
-                    emissiveIntensity={0}            // Keep at 0. Let the PointLight/SpotLight reveal them.
+                    opacity={opacity*.4} emissive="#000000"               // CRITICAL: Set to Black. Do not make background blocks glow.
+                    emissiveIntensity={0.15}            // Keep at 0. Let the PointLight/SpotLight reveal them.
                     roughness={0.2}                  // Low roughness = High polish (Premium look)
-                    metalness={0.7}                  // High metalness = Catches realistic reflections
+                    metalness={0.2}                  // High metalness = Catches realistic reflections
                     />
                     <meshStandardMaterial attach="material-3" color={theme.accent_secondary} transparent={true}
-                    opacity={opacity} emissive="#000000"               // CRITICAL: Set to Black. Do not make background blocks glow.
-                    emissiveIntensity={0}            // Keep at 0. Let the PointLight/SpotLight reveal them.
+                    opacity={opacity*.4} emissive="#000000"               // CRITICAL: Set to Black. Do not make background blocks glow.
+                    emissiveIntensity={0.15}            // Keep at 0. Let the PointLight/SpotLight reveal them.
                     roughness={0.2}                  // Low roughness = High polish (Premium look)
-                    metalness={0.7}                  // High metalness = Catches realistic reflections
+                    metalness={0.2}                  // High metalness = Catches realistic reflections
                     />
                     
                     {/* Front Face: White background SVG */}
@@ -195,9 +196,9 @@ export const InfiniteTunnel: React.FC<{ theme: Theme;
                     
                     {/* Back Face */}
                     <meshStandardMaterial attach="material-5" color={theme.accent_secondary}  emissive="#000000"               // CRITICAL: Set to Black. Do not make background blocks glow.
-                    emissiveIntensity={0}            // Keep at 0. Let the PointLight/SpotLight reveal them.
+                    emissiveIntensity={0.15}            // Keep at 0. Let the PointLight/SpotLight reveal them.
                     roughness={0.2}                  // Low roughness = High polish (Premium look)
-                    metalness={0.7}                  // High metalness = Catches realistic reflections
+                    metalness={0.2}                  // High metalness = Catches realistic reflections
                     />
                 </mesh>
             ))}

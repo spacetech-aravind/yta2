@@ -99,12 +99,17 @@ export const CircuitPipes: React.FC<CircuitPipesProps> = ({
                         The '8' is the number of radial segments (how round the pipe is).
                         */}
                         <tubeGeometry args={[pipeCurve, 20, LAYOUT.S2_PIPES.RADIUS, 8, false]} />
-                       <meshStandardMaterial 
-                            color={theme.accent_primary} 
-                            emissive={theme.accent_primary}
-                            emissiveIntensity={0.2} // Subtle glow
-                            roughness={0.3}         // Makes it shiny
-                            metalness={0.8}         // Gives it a metallic "conduit" look
+                       {/* GLASS SHELL: Uses secondary color (Atmosphere tint) */}
+                       <meshPhysicalMaterial 
+                            color={theme.accent_secondary} 
+                            transmission={0.6}       // Semi-transparent
+                            opacity={0.3}            // See-through
+                            transparent={true}
+                            roughness={0.2}          // Smooth glass
+                            metalness={0.1}          // Not metallic
+                            clearcoat={1.0}          // Shiny top layer
+                            emissive={theme.accent_primary} 
+                            emissiveIntensity={0.1}  // Very faint glow from the fluid inside
                         />
                     </mesh>
                 ))}
@@ -119,10 +124,9 @@ export const CircuitPipes: React.FC<CircuitPipesProps> = ({
                             {/* The physical "bit" of data */}
                             <mesh position={[originX + offset, photonY, pipeZ]}>
                                 <sphereGeometry args={[LAYOUT.S2_PIPES.RADIUS * 1.1, 16, 16]} />
-                                <meshStandardMaterial 
-                                    color={theme.accent_primary} 
-                                    emissive={theme.accent_primary} 
-                                    emissiveIntensity={4} // High glow for the "data"
+                                <meshBasicMaterial 
+                                    color={theme.accent_primary} // Pure color, unaffected by lighting
+                                    // Emissive property isn't needed on BasicMaterial, but color acts as emission
                                 />
                             </mesh>
                             
@@ -130,8 +134,9 @@ export const CircuitPipes: React.FC<CircuitPipesProps> = ({
                             <pointLight 
                                 position={[originX + offset, photonY, slateZ + 0.1]} 
                                 color={theme.accent_primary}
-                                intensity={0.05}
-                                distance={0.1}
+                                intensity={2}
+                                distance={0.5}
+                                decay={2}
                             />
                         </group>
                     );

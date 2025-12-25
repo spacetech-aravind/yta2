@@ -86,9 +86,11 @@ export const KnowledgeSlate: React.FC<Props> = ({
             {/* MAIN SLATE BODY */}
             <RoundedBox args={[slateWidth, height, depth]} radius={height / 18}>
                 <meshStandardMaterial 
-                    color={theme.accent_secondary} 
-                    metalness={0.7} 
-                    roughness={0.3} 
+                    color="#1a1a1a"
+                    emissive={theme.accent_secondary} // Subtle theme tint from within
+                    emissiveIntensity={0.1} 
+                    metalness={0.9} 
+                    roughness={0.2} 
                 />
             </RoundedBox>
 
@@ -112,7 +114,7 @@ export const KnowledgeSlate: React.FC<Props> = ({
                     {isPlaying && (
                         <mesh scale={[rippleScale, rippleScale, 1]}>
                             <circleGeometry args={[height * 0.15, 32]} />
-                            <meshBasicMaterial color="white" transparent opacity={rippleOpacity} />
+                            <meshBasicMaterial color={theme.accent_primary} transparent opacity={rippleOpacity} />
                         </mesh>
                     )}
                     <group scale={isPlaying ? 1 - (buttonSpring * 0.3) : 1}>
@@ -136,7 +138,7 @@ export const KnowledgeSlate: React.FC<Props> = ({
                     </mesh>
                     <mesh position={[-(barWidth / 2) + (barWidth * progressPercent) / 2, 0, 0.001]}>
                         <planeGeometry args={[barWidth * progressPercent, barHeight]} />
-                        <meshBasicMaterial color="#FF0000" />
+                        <meshBasicMaterial color={theme.brand_youtube} />
                     </mesh>
                 </group>
 
@@ -144,23 +146,23 @@ export const KnowledgeSlate: React.FC<Props> = ({
                 <group position={[-barWidth / 2, -height * 0.02, 0]}>
                     {/* Play/Pause Icon */}
                     
-                    <Text fontSize={height * 0.06} color="grey" anchorX="left" position={[0, 0, 0]}>
+                    <Text fontSize={height * 0.06} color={theme.text_muted} anchorX="left" position={[0, 0, 0]}>
                         {isPlaying ? "⏸" : "▶"}
                     </Text>
 
                     {/* Next Icon */}
-                    <Text fontSize={height * 0.05} color="grey" anchorX="left" position={[height * 0.1, 0, 0]}>
+                    <Text fontSize={height * 0.05} color={theme.text_muted} anchorX="left" position={[height * 0.1, 0, 0]}>
                         ⏭
                     </Text>
 
                     {/* Timestamp */}
-                    <Text fontSize={height * 0.04} color="grey" anchorX="left" position={[height * 0.22, 0, 0]}>
+                    <Text fontSize={height * 0.04} color={theme.text_muted} anchorX="left" position={[height * 0.22, 0, 0]}>
                         {currentTimeStr}
                     </Text>
 
                     {/* Right Side Settings/Expand */}
                     <group position={[barWidth*.95, 0, 0]}>
-                        <Text fontSize={height * 0.05} color="grey" anchorX="right">
+                        <Text fontSize={height * 0.05} color={theme.text_muted} anchorX="right">
                             ⚙️ □     
                         </Text>
                     </group>

@@ -1,6 +1,6 @@
 {
   "meta": {
-    "theme_seed": 42938,
+    "theme_seed": 6,
     "config": {
       "resolution": { "w": 1080, "h": 1920 },
       "fps": 30

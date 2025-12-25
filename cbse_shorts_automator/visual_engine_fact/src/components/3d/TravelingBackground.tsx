@@ -1,53 +1,52 @@
-import React, { useRef } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import React, { useMemo } from 'react';
+import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Theme } from '../../theme/palettes';
 
 export const TravelingBackground: React.FC<{ theme: Theme }> = ({ theme }) => {
-    const { camera } = useThree();
-    const meshRef = useRef<THREE.Mesh>(null);
+    const { viewport } = useThree();
 
-    // This ensures the background is always centered on the camera
-    useFrame(() => {
-        if (meshRef.current) {
-            meshRef.current.position.copy(camera.position);
-        }
-    });
+    // Custom Shader for the "Infinite Studio" Vignette
+    // Uses an exponential power (dist * dist) for a smooth "Tunnel" falloff
+    const shaderArgs = useMemo(() => ({
+        uniforms: {
+            uColorInner: { value: new THREE.Color(theme.bg_gradient_inner) },
+            uColorOuter: { value: new THREE.Color(theme.bg_gradient_outer) },
+        },
+        vertexShader: `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform vec3 uColorInner;
+            uniform vec3 uColorOuter;
+            varying vec2 vUv;
 
-    // Custom Shader to create a vertical gradient
-    const uniforms = {
-        topColor: { value: new THREE.Color(theme.bg_gradient[1]) }, // Light/Accent
-        bottomColor: { value: new THREE.Color(theme.bg_gradient[0]) }, // Dark/Base
-        offset: { value: 0 },
-        exponent: { value: 0.6 }
-    };
+            void main() {
+                // Calculate distance from center (0.5, 0.5)
+                vec2 center = vec2(0.5, 0.5);
+                float dist = distance(vUv, center);
+
+                // EXPONENTIAL FALLOFF: 
+                // Multiplies distance by 1.2 to pull corners into darkness
+                // Powers it by 2.5 to keep the center rich and the edges steep
+                float vignette = smoothstep(0.0, 1.0, pow(dist * 1.5, 2.0));
+
+                // Mix Inner -> Outer based on vignette
+                vec3 finalColor = mix(uColorInner, uColorOuter, vignette);
+                
+                gl_FragColor = vec4(finalColor, 1.0);
+            }
+        `
+    }), [theme.bg_gradient_inner, theme.bg_gradient_outer]);
 
     return (
-        <mesh ref={meshRef}>
-            <sphereGeometry args={[100, 32, 32]} />
-            <shaderMaterial
-                uniforms={uniforms}
-                vertexShader={`
-                    varying vec3 vWorldPosition;
-                    void main() {
-                        vec4 worldPosition = modelMatrix * vec4( position, 1.0 );
-                        vWorldPosition = worldPosition.xyz;
-                        gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-                    }
-                `}
-                fragmentShader={`
-                    uniform vec3 topColor;
-                    uniform vec3 bottomColor;
-                    uniform float offset;
-                    uniform float exponent;
-                    varying vec3 vWorldPosition;
-                    void main() {
-                        float h = normalize( vWorldPosition + offset ).y;
-                        gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h, 0.0 ), exponent ), 0.0 ) ), 1.0 );
-                    }
-                `}
-                side={THREE.BackSide}
-            />
+        <mesh scale={[viewport.width, viewport.height, 1]}>
+            <planeGeometry args={[1, 1]} />
+            <shaderMaterial args={[shaderArgs]} depthWrite={false} />
         </mesh>
     );
 };

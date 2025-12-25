@@ -162,7 +162,9 @@ export const Scenes: React.FC<{ scenario: FactScenario }> = ({ scenario }) => {
 
 
     return (
-        <AbsoluteFill style={{ backgroundColor: '#FFFFFF' }}>
+        <AbsoluteFill style={{ 
+            background: `radial-gradient(circle at center, ${theme.bg_gradient_inner} 0%, ${theme.bg_gradient_outer} 100%)`
+        }}>
             {frame < tOutroFrame && (
                 <>
             {/* LAYER 1: THE PERSISTENT 3D STAGE */}
@@ -171,13 +173,14 @@ export const Scenes: React.FC<{ scenario: FactScenario }> = ({ scenario }) => {
                 linear
                 width={width}
                 height={height}
+                style={{ background: 'transparent' }}
                 //style={{ backgroundColor: theme.bg_gradient[0] }}
             >
                 
-                <TravelingBackground theme={theme} />
+                {/* <TravelingBackground theme={theme} /> */}
 
             {/* 3. Add Fog to blend the Tunnel into the background gradient */}
-            <fog attach="fog" args={[theme.bg_gradient[0], 10, 80]} />
+            <fog attach="fog" args={[theme.bg_gradient_outer, 10, 80]} />
 
             <ParticleField color={theme.accent_secondary} count={150} />
                 {/* We pass the pre-calculated anchors to Scene 1 */}

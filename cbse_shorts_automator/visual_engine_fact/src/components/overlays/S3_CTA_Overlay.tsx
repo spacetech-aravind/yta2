@@ -88,9 +88,9 @@ const localFrame = frame - tCtaFrame;
                 boxSizing: 'border-box',
                 
                 // 2. VISUALS (Independent Glass)
-                background: 'rgba(0, 0, 0, 0.6)', // Slightly darker for better legibility
+                background: theme.surface_pill_bg, // Slightly darker for better legibility
                 backdropFilter: 'blur(14px)',
-                border: `2px solid ${theme.accent_primary}`,
+                border: `1px solid rgba(255,255,255,0.2)`,
                 borderRadius: '20px',       // Softened rectangle instead of pill
                 padding: '2vh 3vh',
                 
@@ -99,10 +99,10 @@ const localFrame = frame - tCtaFrame;
                 alignItems: 'center', 
                 justifyContent: 'center',
                 fontFamily: 'MontserratPill',
-                boxShadow: `0 8px 32px rgba(0,0,0,0.4), 0 0 15px ${theme.accent_primary}33`,
+                boxShadow: `0 8px 32px rgba(0,0,0,0.3), 0 0 20px ${theme.surface_pill_bg}66`,
             }}>
                 <span style={{ 
-                    color: 'white', 
+                    color: theme.text_on_pill, 
                     fontWeight: 800,        // Extra bold for the call to action
                     fontSize: vid_height * 0.032, // Adjusted for longer strings
                     lineHeight: 1.1,
